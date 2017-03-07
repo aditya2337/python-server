@@ -6,3 +6,4 @@ chardet==1.0.1
 gunicorn==0.14.2
 requests==0.11.1
 pymongo >= 2.1
+flask_pymongo >= 0.3
