@@ -1,11 +1,14 @@
+import json
 from flask import Flask
 from flask import jsonify
 from flask import request
 from flask import make_response
 from bson.objectid import ObjectId
 from flask_pymongo import PyMongo
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
+CORS(app)
 
 app.config['MONGO_DBNAME'] = 'androiditya'
 app.config['MONGO_URI'] = 'mongodb://admin1:admin1@ds053206.mlab.com:53206/androiditya'
@@ -21,7 +24,7 @@ def get_tasks():
     task = mongo.db.tasks
     output = []
     for t in task.find():
-        output.append({'title' : t['title'], 'description' : t['description'], 'done' : t['done']})
+        output.append({'_id': str(t['_id']),'title' : t['title'], 'done' : t['done']})
     return jsonify({'result' : output})
 
 
@@ -42,41 +45,33 @@ def not_found(error):
 
 @app.route('/todo/api/v1.0/tasks', methods=['POST'])
 def create_task():
-    if not request.form or not 'title' in request.form:
-        abort(400)
+    data = json.loads(request.data)
+    print(data['title'])
     task = mongo.db.tasks
-    title = request.form['title']
-    description = request.form['description']
-    done = request.form['done']
+    title = data['title']
+    done = data['done']
     task_id = task.insert({
         'title': title,
-        'description': description,
         'done': done
     })
     new_task = task.find_one({"_id": ObjectId(task_id)})
-    output = {'title' : new_task['title'], 'description' : new_task['description'], 'done' : new_task['done']}
+    output = {'title' : new_task['title'], 'done' : new_task['done']}
     return jsonify({'task': output}), 201
 
 @app.route('/todo/api/v1.0/tasks/<string:task_id>', methods=['PUT'])
 def update_task(task_id):
-    if not request.form or not 'title' in request.form:
-        abort(400)
-    print request.form
+    data = json.loads(request.data)
     task = mongo.db.tasks
     output = []
-    title = request.form['title']
-    description = request.form['description']
-    done = request.form['done']
+    done = data['done']
     t = task.update_one({"_id" : ObjectId(task_id)}, {
     "$set": {
-        "title": title,
-        "description": description,
         "done": done
         }
     })
-    new_task = task.find_one({"_id": ObjectId(task_id)})
-    output = {'title' : new_task['title'], 'description' : new_task['description'], 'done' : new_task['done']}
-    return jsonify({'task': output}), 201
+    for t in task.find():
+        output.append({'_id': str(t['_id']),'title' : t['title'], 'done' : t['done']})
+    return jsonify({'result' : output})
 
 @app.route('/todo/api/v1.0/tasks/delete/<string:task_id>', methods=['DELETE'])
 def delete_task(task_id):
