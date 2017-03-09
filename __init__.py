@@ -32,12 +32,9 @@ def get_tasks():
 def get_task(task_id):
     task = mongo.db.tasks
     output = []
-    t = task.find_one({"_id" : ObjectId(task_id)})
-    if t:
-        output = {'title' : t['title'], 'description' : t['description'], 'done' : t['done']}
-    else:
-        output = 'No such task'
-    return jsonify({'task': output})
+    for t in task.find({"timestamp" : task_id}):
+        output.append({'_id': str(t['_id']),'title' : t['title'], 'done' : t['done']})
+    return jsonify({'result' : output})
 
 @app.errorhandler(404)
 def not_found(error):
@@ -46,16 +43,17 @@ def not_found(error):
 @app.route('/todo/api/v1.0/tasks', methods=['POST'])
 def create_task():
     data = json.loads(request.data)
-    print(data['title'])
     task = mongo.db.tasks
     title = data['title']
     done = data['done']
+    timestamp = data['timestamp']
     task_id = task.insert({
         'title': title,
-        'done': done
+        'done': done,
+        'timestamp': timestamp
     })
     new_task = task.find_one({"_id": ObjectId(task_id)})
-    output = {'title' : new_task['title'], 'done' : new_task['done']}
+    output = {'title' : new_task['title'], 'done' : new_task['done'], 'timestamp': new_task['timestamp']}
     return jsonify({'task': output}), 201
 
 @app.route('/todo/api/v1.0/tasks/<string:task_id>', methods=['PUT'])
